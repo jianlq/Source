@@ -1,7 +1,7 @@
 ﻿#include"evolutionbit.h"
 #include"EE.h"
 
-//能耗和吞吐率
+//stackelberg4 能耗和吞吐率
 int main(){
 	srand((unsigned)time(NULL));
 	int Time = 3;
@@ -47,8 +47,6 @@ int main(){
 				vector<demand> eqbase;
 
 				//eqbase.clear();//background流 
-
-
 				for(int i = 0; i < BGNUM; i++){
 					int s = rand()%G->n, t;
 					do{
