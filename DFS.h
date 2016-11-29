@@ -71,7 +71,7 @@ bool CGraph::GAinit(vector<demand> &req){
 			if(DFSflag == 1 ){
 				j++;
 				vector<CEdge*> tmp;
-				for(int p = 0;p <pathver.size();p += 2){
+				for(unsigned int p = 0;p <pathver.size();p += 2){
 					int s = pathver[p],t = pathver[p+1];
 					for(unsigned int  a = 0; a <Link.size(); a++){
 						if(Link[a]->tail == s && Link[a]->head == t ){

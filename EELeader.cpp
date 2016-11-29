@@ -1,6 +1,8 @@
 ﻿#include"evolutionbit.h"
 #include"EE.h"
+#include"nash.h"
 
+// 能耗和吞吐率
 int main(){
 	srand((unsigned)time(NULL));
 	int Time = 3;
@@ -17,22 +19,33 @@ int main(){
 
 	vector<double>CONSIDER;
 	int CON_VALUE = 25;
-	double c =0;
+	double c = 0;
 	for(int i=0;i <= CON_VALUE;i++){
 		CONSIDER.push_back(c);
 		c += 0.2;
 	}
 
+	int LOOP  = 100;
 
 	for(int i =0;i<Time;i++){
-		for(int start = 0; start < STARTUP.size();start++){
-			FILE *out = fopen("outputFile//eeor.csv", "a");
+		for(unsigned int start = 0; start < STARTUP.size();start++){
+			FILE *out = fopen("outputFile//eebw.csv", "a");
 			FILE *res = fopen("outputFile//result.csv", "a");
-
+			FILE *nash = fopen("outputFile//nash.csv", "a");
 
 			int conN = CONSIDER.size();
-			vector<double> cmpenergy(conN,0) ;
-			vector<double> cmpthoughtput(conN,0);
+			vector<double> see(conN,0) ;
+			vector<double> sor(conN,0);
+
+			vector<double> dicee(conN,0) ;
+			vector<double> diceeor(conN,0) ;
+
+			vector<double> dicoree(conN,0);
+			vector<double> dicor(conN,0);
+
+			vector<double> nashee(conN,0) ;
+			vector<double> nashor(conN,0);
+
 			vector<int> successCase (conN, 0) ;
 			vector<int> flag(conN,1);
 
@@ -87,9 +100,9 @@ int main(){
 				if( (eedic + 1e-5 >= INF)  || ( ordic + 1e-5 >=INF) )
 					break;
 
-				for(int con = 0;con < CONSIDER.size();con++){
+				for(unsigned int con = 0;con < CONSIDER.size();con++){
 
-					int n = 100;//种群个体数目
+					int n = 150;//种群个体数目
 					int m = eqTE.size();
 					evoluPopubit popubit(n,m,G,GOR,&eqTE,&eqOR,eedic,ordic,CONSIDER[con],STARTUP[start]);
 					(popubit).evolution();
@@ -100,23 +113,72 @@ int main(){
 						break;
 					}
 
-					if(flag[con]){
-						successCase[con] += 1;
-						cmpenergy[con] += popubit.hero.energy/eedic;
-						cmpthoughtput[con] += popubit.hero.throughput /ordic;	
+					//// nash	
+					int nacase = 0;
+					double loopnashee=0,loopnashor=0;
+					fprintf(out,"\n nash \n");
+					for(int i =0;i<LOOP;i++){
+						G->clearOcc();
+						GOR->clearOcc();
+						double ee = NashEE(G,GOR,eqTE,STARTUP[start]);
+						if(ee + 1e-5 >= INF){
+							fprintf(nash,"NashEE unfeasible\n");
+							break;
+						}
+						double bw = bwcplex(GOR,eqOR);
+						if( bw - 1e-5 <= SMALL){
+							fprintf(nash,"NashOR unfeasible\n");
+							break;
+						}
+						eqTE.clear();
+						for(int i=0;i<GOR->m;i++){
+							if(GOR->Link[i]->use>0)
+								eqTE.push_back(demand(GOR->Link[i]->tail,GOR->Link[i]->head,GOR->Link[i]->use));
+						}
+						for(unsigned int i=0;i<eqbase.size();i++)
+							eqTE.push_back(eqbase[i]);
+						
+						nacase++;
+						loopnashee += ee;
+						loopnashor += bw;
+						fprintf(nash,"%f,%f\n",ee,bw);
+						printf("%f,%f\n",ee,bw);
+					}
+					fclose(nash);
+
+					if(flag[con]){	
 						fprintf(out,"EE,%f,%f,%f\n",STARTUP[start],eedic,G->throughput);
 						fprintf(out,"OR,%f,%f,%f\n",STARTUP[start],G->energy,ordic);
-						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.energy,popubit.hero.throughput );
-						fclose(out);
+						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.energy,popubit.hero.throughput);
+						fprintf(out,"Nash,%f,%f,%f\n",STARTUP[start],loopnashee/nacase,loopnashor/nacase);
 
+						successCase[con] += 1;
+						dicee[con] += eedic;
+						diceeor[con] += G->throughput;
+
+						dicoree[con] += G->energy;
+						dicor[con] += ordic;						
+
+						see[con] += popubit.hero.energy;
+						sor[con] += popubit.hero.throughput;
+
+						nashee[con] += (loopnashee/nacase);
+						nashor[con] += (loopnashor/nacase);
+						fclose(out);
 					}
+
 				}
 				delete G;
 				delete GOR;
 
 			}
-			for(int con = 0;con < CONSIDER.size();con++)
-				fprintf(res, "%f,%f,%f,%f\n",STARTUP[start],CONSIDER[con],cmpenergy[con]/successCase[con],cmpthoughtput[con]/successCase[con]); 		
+			fprintf(res, "%f\n",STARTUP[start]);
+			for(unsigned int con = 0;con < CONSIDER.size();con++){
+				fprintf(res, "EE,%f,%f,%f,,OR,%f,%f,,S,%f,%f,,nash,%f,%f\n",CONSIDER[con],dicee[con]/successCase[con],diceeor[con]/successCase[con]
+				,dicor[con]/successCase[con],dicoree[con]/successCase[con]
+				,see[con]/successCase[con],sor[con]/successCase[con]
+				,nashee[con]/successCase[con],nashor[con]/successCase[con]); 
+			}
 			fclose(res);
 		}
 	}

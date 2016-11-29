@@ -32,7 +32,7 @@ public:
 	//m为req的数量
 	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double throughputbest, double con,double open){
 		Init();
-		x.resize(m);//
+		x.resize(m);
 		G = g;
 		GOR=gor;
 		dem = d;
@@ -60,19 +60,19 @@ public:
 		// 也可以用  x = tx ; 代替上面的操作
 	}
 
-	/////////////交配杂交  crossover
+	////交配杂交  crossover
 	evoluDivbit crossover(evoluDivbit other){
 		vector<vector<int> > nx;	
-		/*
-		//分成两截互换 在num处截断  即是单点杂交
-		int n=dem->size();
-		int num=rand()%(n/2);
-		for(int i=0;i<num;i++) 
-		nx.push_back(x[i]);
-		for(unsigned int ij=num;ij<x.size();ij++)
-		nx.push_back(other.x[ij]);	
-		return evoluDivbit(nx, G,GOR, dem,demor);	
-		*/			
+		
+		////分成两截互换 在num处截断  即是单点杂交
+		//int n=dem->size();
+		//int num=rand()%(n/2);
+		//for(int i=0;i<num;i++) 
+		//nx.push_back(x[i]);
+		//for(unsigned int ij=num;ij<x.size();ij++)
+		//nx.push_back(other.x[ij]);	
+		//return evoluDivbit(nx, G,GOR, dem,demor);	
+					
 		vector<vector<int> > onezero;   //多点交叉  随机产生一串0-1序列  为0不交叉  为1交叉
 		for(unsigned int i=0;i<x.size();i++){
 			vector<int> bit;
@@ -90,15 +90,14 @@ public:
 			return evoluDivbit(nx, G,GOR, dem,demor,other.energybase,other.throughputbase,other.consider,other.OPEN);	
 	}
 
-	//将二进制转为十进制  路径编号的具体值
+	////将二进制转为十进制  路径编号的具体值
 	int Decoding(vector<int> &bit){
 		int z=0;
 		z = bit[0]*1+bit[1]*2+bit[2]*4+bit[2]*8;//// 16条路
-		//z = bit[0]*1+bit[1]*2+bit[2]*4;//// 8条路
 		return z;
 	}
 
-	// *********  计算能力  *********//
+	////计算适应值
 	void calAbility(){
 		G->reqPathNo.clear(); //清空上一个个体解的路径编号
 		for(unsigned int i=0;i<x.size();i++) 
@@ -115,7 +114,7 @@ public:
 		}
 	}
 
-	void mutation(){	//变异
+	void mutation(){//变异
 		int i=0;
 		while(i<MUT){
 			int row= rand()% dem->size();//产生需要变异的req路径编号
@@ -126,7 +125,7 @@ public:
 		}
 	}
 
-	/////////学习历史最优解
+	////学习历史最优解
 	void culture(evoluDivbit hero){
 		int n=0;
 		while(n<HER){
@@ -188,7 +187,7 @@ public:
 		return res; //如果for循环中没有返回   // 解决 ：“evoluPopubit::wheelchose”: 不是所有的控件路径都返回
 	}
 
-	/////////// 种群进化 //////////////////
+	////种群进化
 	evoluDivbit evolution(){
 		int nohero=0;//记录进化情况
 		fprintf(herofile,"Start:\n ");
@@ -212,11 +211,9 @@ public:
 				sum += popu[i].ability;
 			vector<evoluDivbit> chosepopu;
 			chosepopu.clear();
-			//cout<< " ch   " <<endl;
 			for(int i=0;i<n;i++) //n种群大小
 			{
 				int ch=wheelchose(sum);
-				// cout<<"  "<<ch<<"  ";
 				chosepopu.push_back(popu[ch]);
 			}
 			popu.clear();
@@ -242,15 +239,12 @@ public:
 			}
 			sort(sons.begin(), sons.end(), Cmp2);
 			popu.clear(); //清空上一代种群
-			//printf("Year %d\n ", curYear);
 			for(int i = 0; i < n; i++){
-				//printf("%.6f ", sons[i].ability);
 				popu.push_back(sons[i]); //保持种群数量不变为n,将能力排在前n的放入下一代种群
 				if(abs(sons[i].ability - hero.ability) < 1e-4 ){	
 					continue;
 				}
 				else if(sons[i].ability > hero.ability){
-					//cout<< sons[i].ability <<"  >>>>>>  "<< hero.ability;
 					hero = sons[i]; //选出能力最好的作为hero
 					getMore = 1;
 				}
@@ -285,7 +279,7 @@ double evoluDivbit::GAability(){
 	this->GOR->clearOcc();
 	Calthroughput();
 	double bw = bwcplex(GOR,(*demor));
-
+	
 	//新的流量矩阵
 	vector<demand> req;
 	for (int i = 0; i < GOR->m; i++){
@@ -301,8 +295,8 @@ double evoluDivbit::GAability(){
 	G->clearOcc(); 
 	double ee,bw2;
 	heuristicEE(G,req,ornum,ee,bw2,OPEN);
+	cout << ee<< "  "<<bw<<"  "<< bw2<<endl; // bw2 is big
 	
-	//cout << bw <<" " << bw2 << " ***;   ";
 	double ab = MIN;
 	if ( (bw -1e-5) <= SMALL && (ee+1e-5) >= INF){
 		this->energy = ee;
@@ -338,5 +332,4 @@ void evoluDivbit::Calthroughput(){
 		} 
 	} 
 }
-
 #endif

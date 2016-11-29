@@ -1,25 +1,7 @@
-#ifndef NASH
+ï»¿#ifndef NASH
 #define NASH
 #include"CGraph.h"
 #include <ilcplex/ilocplex.h>
-
-double NashOR(CGraph *g,vector<demand> req){
-	int block = 0,success = 0;
-	double del = 0;
-	for(unsigned int i = 0; i < req.size(); i++){
-		double ret = g->dijkstraOR(req[i].org, req[i].des, req[i].flow); 
-		if(ret+1e-5 >= INF)
-			block++;
-		else{
-			del += ret;
-			success++;		
-		}
-	}
-	if(success < req.size())	
-		del = INF;
-	
-	return del;
-}
 
 double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 	IloEnv env;
@@ -31,13 +13,13 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 	for(int d = 0; d < num; d++)
 		x[d] = IloIntVarArray(env, G->m, 0, 1); 	
 
-	// ¶ÔÃ¿¸öµã½øĞĞÁ÷Á¿ÊØºãÔ¼Êø  
+	// å¯¹æ¯ä¸ªç‚¹è¿›è¡Œæµé‡å®ˆæ’çº¦æŸ  
 	for(int d = 0; d < num; d++){
-		for(int i = 0; i < G->n; i++){    // nÎª¶¥µãÊı
+		for(int i = 0; i < G->n; i++){    // nä¸ºé¡¶ç‚¹æ•°
 			IloExpr constraint(env);
-			for(unsigned int k = 0; k < G->adjL[i].size(); k++) // ³ö¶È±ß
+			for(unsigned int k = 0; k < G->adjL[i].size(); k++) // å‡ºåº¦è¾¹
 				constraint += x[d][G->adjL[i][k]->id];
-			for(unsigned int k = 0; k < G->adjRL[i].size(); k++) // Èë¶È±ß
+			for(unsigned int k = 0; k < G->adjRL[i].size(); k++) // å…¥åº¦è¾¹
 				constraint -= x[d][G->adjRL[i][k]->id];
 
 			if(i == req[d].org)
@@ -56,7 +38,7 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 		model.add( constraint <= G->Link[i]->capacity );  
 	}
 
-	//ÓÅ»¯Ä¿±ê ½ÚÄÜ OPEN+X^2
+	//ä¼˜åŒ–ç›®æ ‡ èŠ‚èƒ½ OPEN+X^2
 	IloExpr cost(env);
 	for(int i = 0; i < G->m; i++){
 		IloExpr load(env);
@@ -65,7 +47,8 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 			load += req[d].flow*x[d][i];
 			tmp[d] = x[d][i];
 		}
-		cost += ( IloPower(load,2) + IloMax(tmp)*OPEN );
+		//cost += ( IloPower(load,2) + IloMax(tmp)*OPEN );
+		cost += ( load*load + IloMax(tmp)*OPEN );
 	}
 	model.add(IloMinimize(env,cost));
 
@@ -73,36 +56,37 @@ double NashEE(CGraph *G,CGraph *GOR,vector<demand> & req,double OPEN){
 	double obj = INF;
 	if(EEsolver.solve()){
 		obj = EEsolver.getObjValue(); //energy
-		
-		for(int i=0;i<G->m;i++){  
+
+		for(int i = 0;i < G->m; i++){  
 			double loadc = 0;
-			for(int d=0;d < num;d++)
+			for(int d = 0;d < num; d++)
 				loadc += EEsolver.getValue(x[d][i])*req[d].flow;
-			G->Link[i]->latency = linearCal(loadc,G->Link[i]->capacity);
+			G->Link[i]->bw = G->Link[i]->capacity -loadc; //residual bw
 		}
 
-		//GOR delay
-		for(int m=0;m<GOR->m;m++){	
-			bool flag=false;
-			double dmin=0;
-			for(int d=0;d<num;d++){
-				if (GOR->Link[m]->tail == req[d].org && GOR->Link[m]->head == req[d].des && (req[d].flow>0)){
+		for(int m = 0;m < GOR->m; m++){	
+			bool flag = false;
+			double resbw = INF;
+			for(int d = 0;d < num;d ++){
+				if ( GOR->Link[m]->tail == req[d].org && GOR->Link[m]->head == req[d].des && (req[d].flow>0)){
 					if(flag==false){
 						flag=true;
 						for(int i=0;i<G->m;i++)
-							dmin +=  EEsolver.getValue(x[d][i])*G->Link[i]->latency;
+							if(EEsolver.getValue(x[d][i])>0.5)
+								resbw  = min( resbw , EEsolver.getValue(x[d][i])*G->Link[i]->bw);
 					}
 				}
 				if(flag==true){
-					GOR->Link[m]->latency = dmin;	
+					GOR->Link[m]->bw = resbw ;	
 					break;
 				}
 			} 
-			if(flag == false)
-				GOR->Link[m]->latency = G->dijkstraOR(GOR->Link[m]->tail,GOR->Link[m]->head,0);
-		} 
+		} 		
 	}
-	for(int i = 0; i < req.size(); i++)
+	else{
+		cout << "nashEE unfeasible"<<endl;
+	}
+	for(size_t i = 0; i < req.size(); i++)
 		x[i].end();
 	x.end();
 	env.end();

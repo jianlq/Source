@@ -22,8 +22,8 @@ using namespace std;
 
 #define MAXDEMAND 15
 #define BGNUM 5
-#define INF 1000000
-#define SMALL 1e-5
+#define INF 1e+8
+#define SMALL 1e-4
 #define MAXWEIGHT 10
 #define MIN 0.01
 #define CONSTANT 0
