@@ -1,7 +1,6 @@
 ﻿#include"evolutionbit.h"
 #include"EE.h"
 
-//stackelberg4 能耗和吞吐率
 int main(){
 	srand((unsigned)time(NULL));
 	int Time = 3;
@@ -24,6 +23,7 @@ int main(){
 		c += 0.2;
 	}
 
+
 	for(int i =0;i<Time;i++){
 		for(int start = 0; start < STARTUP.size();start++){
 			FILE *out = fopen("outputFile//eeor.csv", "a");
@@ -31,8 +31,8 @@ int main(){
 
 
 			int conN = CONSIDER.size();
-			vector<double> cmpmlu(conN,0) ;
-			vector<double> cmpdelay(conN,0);
+			vector<double> cmpenergy(conN,0) ;
+			vector<double> cmpthoughtput(conN,0);
 			vector<int> successCase (conN, 0) ;
 			vector<int> flag(conN,1);
 
@@ -78,8 +78,6 @@ int main(){
 				G->clearOcc();
 				ordic = throughput(G,eqTE,ornum,STARTUP[start]);
 
-				exit(1);
-
 				G->clearOcc();
 				if(!G->GAinit(eqTE)){
 					cout << "*****GA init failed***** "<<endl;
@@ -91,34 +89,34 @@ int main(){
 
 				for(int con = 0;con < CONSIDER.size();con++){
 
-
 					int n = 100;//种群个体数目
 					int m = eqTE.size();
 					evoluPopubit popubit(n,m,G,GOR,&eqTE,&eqOR,eedic,ordic,CONSIDER[con],STARTUP[start]);
 					(popubit).evolution();
-					cout<<"S\t"<<popubit.hero.energy<<"\t"<<popubit.hero.delay<<endl;
+					cout<<"S\t"<<popubit.hero.energy<<"\t"<<popubit.hero.throughput <<endl;
 
-					if( (popubit.hero.energy +1e-5) >= INF ||  (popubit.hero.delay + 1e-5) > INF ){
+					if( (popubit.hero.energy +1e-5) >= INF ||  (popubit.hero.throughput  - 1e-5) < 0 ){
 						flag[con] = 0;
 						break;
 					}
 
 					if(flag[con]){
 						successCase[con] += 1;
-						cmpmlu[con] += popubit.hero.energy/eedic;
-						cmpdelay[con] += popubit.hero.delay/ordic;	
-						fprintf(out,"EE,%f,%f,%f\n",STARTUP[start],eedic,G->delay);
+						cmpenergy[con] += popubit.hero.energy/eedic;
+						cmpthoughtput[con] += popubit.hero.throughput /ordic;	
+						fprintf(out,"EE,%f,%f,%f\n",STARTUP[start],eedic,G->throughput);
 						fprintf(out,"OR,%f,%f,%f\n",STARTUP[start],G->energy,ordic);
-						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.energy,popubit.hero.delay);
+						fprintf(out,"S,%f,%f,%f\n",STARTUP[start],popubit.hero.energy,popubit.hero.throughput );
 						fclose(out);
 
 					}
 				}
 				delete G;
 				delete GOR;
+
 			}
 			for(int con = 0;con < CONSIDER.size();con++)
-				fprintf(res, "%f,%f,%f,%f\n",STARTUP[start],CONSIDER[con],cmpmlu[con]/successCase[con],cmpdelay[con]/successCase[con]); 		
+				fprintf(res, "%f,%f,%f,%f\n",STARTUP[start],CONSIDER[con],cmpenergy[con]/successCase[con],cmpthoughtput[con]/successCase[con]); 		
 			fclose(res);
 		}
 	}

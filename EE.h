@@ -3,7 +3,7 @@
 #include"CGraph.h"
 #include <ilcplex/ilocplex.h>
 
-// 4+x^2
+// OPEN+x^2
 double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	IloEnv env;
 	IloModel model(env);
@@ -58,7 +58,7 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	if(EEsolver.solve()){
 		obj = EEsolver.getObjValue(); //energy
 		//thoughtput
-		double thoughtput = 0;
+		double output = 0;
 		for(int i = 0;i < G->m; i++){  
 			double loadc = 0;
 			for(int d = 0;d < num; d++)
@@ -66,15 +66,15 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 			G->Link[i]->use = G->Link[i]->capacity -loadc; //residual bw
 		}
 		for(int d = 0;d < ornum; d++){
-			double res = 0;
+			double res = INF;
 			for(int i = 0;i < G->m; i++){
 				if(EEsolver.getValue(x[d][i]) > 0.5)
-					res = max( res, G->Link[i]->use );
+					res = min( res, G->Link[i]->use );
 			}
-			thoughtput += res;
+			output += res*req[d].flow;
 		}
-		G->delay = thoughtput;
-		cout << "EE\t"<< obj <<"\t"<<thoughtput<<endl;
+		G->throughput = output;
+		cout << "EE\t能耗 "<< obj <<"\t吞吐率 "<<output<<endl;
 	}
 	else{
 		cout << "EE unfeasible"<<endl;
@@ -165,7 +165,7 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 				energy += (one*OPEN + load*load);
 			}
 			G->energy = energy;
-			cout << "OR\t"<<energy<< "\t"<<obj<<endl;
+			cout << "OR\t能耗 "<<energy<< "\t吞吐率 "<<obj<<endl;
 		}
 		for(int i = 0; i < req.size(); i++)
 			x[i].end();
@@ -173,6 +173,72 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 		env.end();
 		return obj;
 }
+
+double bwcplex(CGraph *g,vector<demand> req){    
+	IloEnv env;
+	IloModel model(env);
+	IloCplex ORsolver(model);
+
+	int num = req.size();
+	IloArray<IloIntVarArray> x(env, num); 
+	for(int d = 0; d < num; d++)
+		x[d] = IloIntVarArray(env, g->m, 0, 1); 
+
+	//优化目标
+	IloExpr goal(env);
+	
+	IloExprArray cost(env, num);
+	for(int i = 0;i < num; i++)
+		cost[i] = IloExpr(env);
+
+	//Res[d] <= ((1-x[d][i])*INF + (G->Link[i]->capacity - Load[i])));
+	for(int d = 0; d < num; d++){
+		for(int i = 0; i < g->m; i++)
+			model.add(cost[d] <= ( (1-x[d][i])*INF + g->Link[i]->bw) ); //G->Link[i]->bw : residual bandwidth
+		goal += cost[d];	
+	}
+	model.add(IloMaximize(env,goal));
+
+	//流量守恒约束
+	for(int d = 0; d < num; d++)
+		for(int i = 0; i < g->n; i++){    // n为顶点数
+			IloExpr constraint(env);
+			for(unsigned int k = 0; k < g->adjL[i].size(); k++) // 出度边
+				constraint += x[d][g->adjL[i][k]->id];
+			for(unsigned int k = 0; k < g->adjRL[i].size(); k++) // 入度边
+				constraint -= x[d][g->adjRL[i][k]->id];
+			// 出 - 入
+			if(i == req[d].org)
+				model.add(constraint == 1);
+			else if(i == req[d].des)
+				model.add(constraint == -1);
+			else
+				model.add(constraint == 0);
+		}
+
+		ORsolver.setOut(env.getNullStream());
+		double obj = SMALL;
+		ORsolver.solve();
+		if(ORsolver.getStatus() == IloAlgorithm::Infeasible)
+			env.out() << "throughput unfeasible" << endl;
+		else{
+			obj = ORsolver.getObjValue();
+			//use
+			for(int i = 0; i < g->m; i++){  
+				double load = 0;
+				for(int d = 0; d < num; d++){
+					load += ORsolver.getValue(x[d][i])*req[d].flow;
+				}
+				g->Link[i]->use = load;
+			}
+		}
+		for(int i = 0; i < req.size(); i++)
+			x[i].end();
+		x.end();
+		env.end();
+		return obj;
+}
+
 
 double CGraph::EE(int id,int s,int t,double dm,bool needpath,double OPEN){
 	vector<int> p, flag;

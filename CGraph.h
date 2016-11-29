@@ -6,7 +6,7 @@ class CEdge{
 public:
 	int  id, tail,head;
 	double use;
-	double dist,latency,load,capacity;
+	double dist,latency,bw,capacity;
 	CEdge(){ }
 	CEdge(int i, int a, int b, double c,double d){
 		id = i;
@@ -14,7 +14,7 @@ public:
 		head = b;
 		dist = c;
 		capacity = d;
-		load = 0; 
+		bw = 0;  //residual bandwidth
 		latency = INF;
 		use  = 0;
 	}
@@ -157,8 +157,6 @@ public:
 
 	// dijkstra
 	vector<vector<int>> reqPathID;
-	double dijkstra(int id,int s, int t, double dm ,bool ORselfish,bool needpath);
-	double dijkstraOR(int s, int t,double dm);
 	double EE(int id,int s,int t,double dm,bool needpath,double OPEN);
 
 	//dfs
@@ -166,7 +164,7 @@ public:
 
 	//独裁
 	double energy;
-	double delay;
+	double throughput;
 
 public:
 	CGraph(char* inputFile);
@@ -179,8 +177,8 @@ public:
 
 	void clearOcc(){
 		for(int i=0;i<m;i++){
-			Link[i]->load = 0; 
-			Link[i]->use = 0;
+			Link[i]->bw = 0;  //residual bandwidth
+			Link[i]->use = 0; // used 
 			Link[i]->latency = INF;
 		}
 	}
@@ -237,121 +235,6 @@ CGraph::CGraph(char* inputFile)
 	for(i=vert.begin();i!=vert.end();i++){ 
 		ver.push_back(*i);
 	}
-
-}
-
-double CGraph::dijkstra(int id,int s, int t, double dm ,bool ORselfish,bool needpath){
-	vector<int> p, flag;
-	vector<double> d;//带宽利用率
-	for(int i = 0; i < n; i++){
-		p.push_back(-1);
-		flag.push_back(0);
-		d.push_back(INF);
-	}
-
-	if(ORselfish){
-		for(int i = 0; i < m; i++){
-			CEdge *e = Link[i];
-			if(e->capacity - e->use <= dm)
-				e->latency = INF;
-			else
-				e->latency = 1.0/(e->capacity - e->use - dm);
-		}
-	}
-
-	d[s] = 0;
-	int cur = s;
-	do{	
-		flag[cur] = 1;
-		for(unsigned int i = 0; i < adjL[cur].size(); i++){
-			CEdge *e = adjL[cur][i];
-			if(CONSTANT){  
-				if(e->capacity - e->use >= dm && d[e->head] > d[e->tail] + e->dist){
-					d[e->head] = d[e->tail] + e->dist;
-					p[e->head] = e->id;
-				}
-			}
-			else {
-				if(ORselfish){  //latency	
-					if( d[e->head] > d[e->tail] + e->latency ){ 
-						d[e->head] = d[e->tail] + e->latency;
-						p[e->head] = e->id;
-					}		
-				}
-				else{  //util	
-					double util = ( dm + e->use )/e->capacity; // 带宽利用率最小
-					double tail_util = max(util,d[e->tail]);
-					if(e->capacity - e->use >= dm && d[e->head] > tail_util ){
-						d[e->head] = tail_util;
-						p[e->head] = e->id;
-					}
-				}
-			}
-
-		}
-		cur = -1;
-		for(int i = 0; i < n; i++)
-			if(!flag[i] && (cur == -1 || d[cur] > d[i] ))
-				cur = i;
-	}while(cur != -1);
-
-	cur = t;
-	do{
-		if(p[cur] == -1)
-			break;
-		Link[p[cur]]->use += dm;
-		cur = Link[p[cur]]->tail;
-	}while(cur != s);
-
-	if(needpath){
-		reqPathID[id].clear();
-		cur = t;
-		do{
-			if(p[cur] == -1)
-				break;
-			this->reqPathID[id].push_back(p[cur]);
-			cur = Link[p[cur]]->tail;
-		}while(cur != s);
-		reverse(reqPathID[id].begin(),reqPathID[id].end());
-	}
-	return d[t];
-}
-
-double CGraph::dijkstraOR(int s, int t,double dm){
-	vector<int> p, flag;
-	vector<double> d;//latency
-	for(int i = 0; i < n; i++){  
-		p.push_back(-1);
-		flag.push_back(0);
-		d.push_back(INF);
-	}
-
-	d[s] = 0;
-	int cur = s;
-	do{
-		flag[cur] = 1;
-		for(unsigned int i = 0; i < adjL[cur].size(); i++){
-			CEdge *e = adjL[cur][i];					
-			if( d[e->head] > d[e->tail] + e->latency ){ ////latency	
-				d[e->head] = d[e->tail] + e->latency;
-				p[e->head] = e->id;
-			}		
-		}
-		cur = -1;
-		for(unsigned int i = 0; i < this->ver.size(); i++)
-			if(!flag[ver[i]] && (cur == -1 || d[cur] > d[ver[i]] ))
-				cur = ver[i];
-	}while(cur != -1);
-
-	cur = t;
-	do{
-		if(p[cur] == -1)
-			break;
-		Link[p[cur]]->use += dm;
-		cur = Link[p[cur]]->tail;
-	}while(cur != s);
-
-	return d[t];
 }
 
 void genGraph(int n, int m, char route[]){ 

@@ -16,42 +16,42 @@ private:
 public:
 	vector<vector<int>> x;//解  各个req经过的路径编号 二进制编码 req*4
 	double ability; //个体能力
-	double delay, energy;//个体能力值的体现
-	double delaybase;
+	double throughput, energy;//个体能力值的体现
+	double throughputbase;
 	double energybase;
 	double OPEN;
 	// 构造函数
 	evoluDivbit() {;}
-	double GAabilityNoCplex();
-	void Caldelay();
+	double GAability();
+	void Calthroughput();
 	void Init(){
 		ability = MIN;
-		delay = INF;
+		throughput = 0;
 		energy = INF;
 	}
 	//m为req的数量
-	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double delaybest, double con,double open){
+	evoluDivbit(int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double throughputbest, double con,double open){
 		Init();
 		x.resize(m);//
 		G = g;
 		GOR=gor;
 		dem = d;
 		demor = dor;
-		delaybase=delaybest;
+		throughputbase=throughputbest;
 		energybase = energybest;
 		OPEN = open;
 		consider = con;
 		randNature(); 
 	}
 
-	evoluDivbit(vector<vector<int> > &tx, CGraph *g,CGraph *gor, vector<demand> *d, vector<demand> *dor,double energybest,double delaybest,double con,double open){
+	evoluDivbit(vector<vector<int> > &tx, CGraph *g,CGraph *gor, vector<demand> *d, vector<demand> *dor,double energybest,double throughputbest,double con,double open){
 		Init();
 		x.clear();
 		G = g;
 		GOR=gor;
 		dem = d;
 		demor=dor;
-		delaybase=delaybest;
+		throughputbase=throughputbest;
 		energybase = energybest;
 			OPEN = open;
 		consider = con;
@@ -87,7 +87,7 @@ public:
 				if(onezero[i][j]==1)
 					nx[i][j]=other.x[i][j];
 			}
-			return evoluDivbit(nx, G,GOR, dem,demor,other.energybase,other.delaybase,other.consider,other.OPEN);	
+			return evoluDivbit(nx, G,GOR, dem,demor,other.energybase,other.throughputbase,other.consider,other.OPEN);	
 	}
 
 	//将二进制转为十进制  路径编号的具体值
@@ -103,13 +103,13 @@ public:
 		G->reqPathNo.clear(); //清空上一个个体解的路径编号
 		for(unsigned int i=0;i<x.size();i++) 
 			G->reqPathNo.push_back(Decoding(x[i])); 
-		ability = GAabilityNoCplex();	
+		ability = GAability();	
 	}
 
 	void randNature(){
 		for(unsigned int i = 0; i < x.size(); i++){
 			vector<int> bit;
-			for(int b=0;b<4;b++)        ///////////////////////   16 ： 4      8 ： 
+			for(int b=0;b<4;b++)       
 				bit.push_back(rand()%2);// 4位编码 随机产生0或1  表示路径编号
 			x[i] = bit; 
 		}
@@ -119,7 +119,7 @@ public:
 		int i=0;
 		while(i<MUT){
 			int row= rand()% dem->size();//产生需要变异的req路径编号
-			int col=rand()%4;//产生需要变异的位置   ///////////////////////   16 ： 4      8 ： 3
+			int col=rand()%4;//产生需要变异的位置  
 			if(x[row][col]==0) x[row][col]=1;
 			else if(x[row][col]==1) x[row][col]=0; 
 			i++;
@@ -160,7 +160,7 @@ private:
 public:
 	evoluDivbit hero;
 	// n 种群大小  m:req数目 初始化种群
-	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double delaybest,double con,double OPEN){
+	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double thoughtputbest,double con,double OPEN){
 		popu.clear();
 		pm = 0.25;
 		G = g;
@@ -168,10 +168,10 @@ public:
 		dem = d;
 		demor = dor;
 		for(int i = 0; i < n; i++){
-			evoluDivbit divi(m, G, GOR,dem,demor,energybest,delaybest,con,OPEN);
+			evoluDivbit divi(m, G, GOR,dem,demor,energybest,thoughtputbest,con,OPEN);
 			popu.push_back(divi);
 		}
-		hero = evoluDivbit(m, G,GOR, dem,demor,energybest,delaybest,con,OPEN);
+		hero = evoluDivbit(m, G,GOR, dem,demor,energybest,thoughtputbest,con,OPEN);
 		herofile = fopen("outputFile//hero.txt","a");
 	}
 	///////////  轮盘赌和
@@ -182,7 +182,6 @@ public:
 		for(unsigned int i=0;i<popu.size();i++){
 			m += popu[i].ability/sum;
 			if(r<=m) {
-				//	cout << i << "   ";
 				return i;
 			}
 		}
@@ -199,7 +198,7 @@ public:
 		for(unsigned int i = 0; i < hero.x.size(); i++)
 			hero.x[i] = h0;//开始的hero设为每个req都走各自路径集合的第0条路
 		hero.calAbility();
-		if(hero.ability>MIN) fprintf(herofile, "%f\t%f\t%f\n", hero.energy,hero.delay,hero.ability);
+		if(hero.ability>MIN) fprintf(herofile, "%f\t%f\t%f\n", hero.energy,hero.throughput,hero.ability);
 		//评价每个个体的能力
 		for(unsigned int i = 0; i < popu.size(); i++)
 			popu[i].calAbility();
@@ -247,8 +246,7 @@ public:
 			for(int i = 0; i < n; i++){
 				//printf("%.6f ", sons[i].ability);
 				popu.push_back(sons[i]); //保持种群数量不变为n,将能力排在前n的放入下一代种群
-				if(abs(sons[i].ability - hero.ability) < 1e-4 ){	//判断相等
-					//cout<< sons[i].ability <<" ====== "<< hero.ability;
+				if(abs(sons[i].ability - hero.ability) < 1e-4 ){	
 					continue;
 				}
 				else if(sons[i].ability > hero.ability){
@@ -259,7 +257,7 @@ public:
 			}
 			if(getMore){
 				fprintf(herofile, "Year %d: find hero \n", curYear);
-				fprintf(herofile,"%f\t%f\t%f\n", hero.energy,hero.delay,hero.ability);
+				fprintf(herofile,"%f\t%f\t%f\n", hero.energy,hero.throughput,hero.ability);
 			}
 			else nohero++;
 			if(nohero> NOHERO){
@@ -272,7 +270,7 @@ public:
 	}
 };
 
-double evoluDivbit::GAabilityNoCplex(){ 
+double evoluDivbit::GAability(){ 
 	this->G->clearOcc(); 
 	for(unsigned int d=0;d<G->reqPathNo.size();d++){
 		int num=G->reqPathNo[d]; 
@@ -285,17 +283,10 @@ double evoluDivbit::GAabilityNoCplex(){
 	}
 
 	this->GOR->clearOcc();
-	Caldelay();
-	/*for (int i = 0; i < GOR->m; i++)
-		cout << GOR->Link[i]->latency<<" ";
-	cout <<endl<<endl;*/
-	double del = 0;
-	for (unsigned int d = 0; d < demor->size(); d++){		
-			del += GOR->dijkstraOR((*demor)[d].org, (*demor)[d].des, (*demor)[d].flow);
-	}
-	//cout <<endl;
+	Calthroughput();
+	double bw = bwcplex(GOR,(*demor));
 
-	//新的流量矩阵计算TE的目标
+	//新的流量矩阵
 	vector<demand> req;
 	for (int i = 0; i < GOR->m; i++){
 		if( GOR->Link[i]->use > 0 )
@@ -308,46 +299,43 @@ double evoluDivbit::GAabilityNoCplex(){
 
 	// 计算EE的目标值
 	G->clearOcc(); 
-	double ee,del2;
-	heuristicEE(G,req,ornum,ee,del2,OPEN);
+	double ee,bw2;
+	heuristicEE(G,req,ornum,ee,bw2,OPEN);
 	
-	//cout << del <<" "<<del2<<" ***;   ";
+	//cout << bw <<" " << bw2 << " ***;   ";
 	double ab = MIN;
-	if ( del+1e-5 <= INF && ee+1e-5 <= INF){
+	if ( (bw -1e-5) <= SMALL && (ee+1e-5) >= INF){
 		this->energy = ee;
-		this->delay = del;	
-		ab = this->energybase/ee + this->delaybase*this->consider / del;  
+		this->throughput = bw;	
+		ab = this->energybase/ee + bw*this->consider / this->throughputbase;  
 	}
 	return ab;
 }
 
 
-void evoluDivbit::Caldelay(){
-	for(int ij=0;ij<G->m;ij++){
-		//G->Link[ij]->latency = linearCal(G->Link[ij]->use,G->Link[ij]->capacity);
+void evoluDivbit::Calthroughput(){
+	for(int ij = 0;ij < G->m; ij++){
+		G->Link[ij]->bw = G->Link[ij]->capacity-G->Link[ij]->use; //residual bandwidth
 	}
-	//cout <<endl;
 	int totalnum = (*dem).size();
-	for(int m=0;m<GOR->m;m++){	
-		bool flag=false;
-		double dmin=0;
-		for(int d=0;d<totalnum;d++){
-			if (GOR->Link[m]->tail == (*dem)[d].org && GOR->Link[m]->head == (*dem)[d].des && ((*dem)[d].flow>0)){
+	for(int m = 0;m < GOR->m; m++){	
+		bool flag = false;
+		double throughput = INF;
+		for(int d = 0;d < totalnum;d ++){
+			if ( GOR->Link[m]->tail == (*dem)[d].org && GOR->Link[m]->head == (*dem)[d].des && ((*dem)[d].flow>0)){
 				if(flag==false){
 					flag=true;
 					//vector<CEdge*> lg=G->reqlistPath[d][G->reqPathNo[d]]->listEdge; //KSP
 					vector<CEdge*> lg=G->reqlistPath[d][G->reqPathNo[d]]; //DFS
 					for(vector<CEdge*>::iterator lgi=lg.begin();lgi!=lg.end();lgi++) 
-							dmin += (*lgi)->latency;
+							throughput  = min(throughput , (*lgi)->bw );
 				}
 			}
 			if(flag==true){
-				GOR->Link[m]->latency = dmin;	
+				GOR->Link[m]->bw = throughput ;	
 				break;
 			}
 		} 
-		if(flag == false)
-			GOR->Link[m]->latency = G->dijkstraOR(GOR->Link[m]->tail,GOR->Link[m]->head,0);
 	} 
 }
 
