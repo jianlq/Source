@@ -26,7 +26,7 @@ public:
 	void Calthroughput();
 	void Init(){
 		ability = MIN;
-		throughput = 0;
+		throughput = SMALL;
 		energy = INF;
 	}
 	//m为req的数量
@@ -298,7 +298,7 @@ double evoluDivbit::GAability(){
 	cout << ee<< "  "<<bw<<"  "<< bw2<<endl; // bw2 is big
 	
 	double ab = MIN;
-	if ( (bw -1e-5) <= SMALL && (ee+1e-5) >= INF){
+	if (  ( bw - 1e-5 >= SMALL) && ( ee+1e-5 <= INF)  ){
 		this->energy = ee;
 		this->throughput = bw;	
 		ab = this->energybase/ee + bw*this->consider / this->throughputbase;  

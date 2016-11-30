@@ -149,7 +149,7 @@ void heuristicEE(CGraph *G,vector<demand>&req,int ornum,double &energy,double &t
 		else
 			success++;
 	}
-	energy = thoughtput = INF;
+	energy = INF,thoughtput = SMALL;
 	if(success == req.size()){	
 		energy = 0;
 		////calculate energy

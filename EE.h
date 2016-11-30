@@ -147,7 +147,7 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 		}
 
 		ORsolver.setOut(env.getNullStream());
-		double obj = INF;
+		double obj = SMALL;
 		ORsolver.solve();
 		if(ORsolver.getStatus() == IloAlgorithm::Infeasible)
 			env.out() << "throughput unfeasible" << endl;
