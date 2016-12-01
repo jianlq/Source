@@ -28,24 +28,28 @@ int main(){
 
 	for(int i =0;i<Time;i++){
 		for(unsigned int start = 0; start < STARTUP.size();start++){
+
 			int conN = CONSIDER.size();
 			vector<double> see(conN,0) ;
 			vector<double> sbw(conN,0);
 
-			vector<double> ee(conN,0) ;
-			vector<double> eebw(conN,0) ;
+			double ee ;
+			double eebw ;
 
-			vector<double> bwee(conN,0);
-			vector<double> bw(conN,0);
+			double bwee;
+			double bw;
 
-			vector<double> nashee(conN,0) ;
-			vector<double> nashbw(conN,0);
+			double nashee ;
+			double nashbw;
 
 			vector<int> successCase (conN, 0) ;
 			vector<int> flag(conN,1);
 
+			int sucCaseEE = 0,sucCaseBW = 0,sucCaseNash = 0;
+
 			for(int casenum = 0; casenum < CASEnum; casenum++){
-				genGraph(9,50,"inputFile//graph.txt");
+
+				genGraph(9,54,"inputFile//graph.txt");
 				genGraphOR(9,4,9,"inputFile//graphOR.txt");
 				CGraph *G = new CGraph("inputFile//graph.txt");
 				CGraph *GOR = new CGraph("inputFile//graphOR.txt");
@@ -83,17 +87,30 @@ int main(){
 				G->clearOcc();
 				eedic = EEdictor(G,eqTE,ornum,STARTUP[start]);
 
+				if( eedic + 1e-5 <= INF ){
+					sucCaseEE++;
+					ee += eedic;
+					eebw += G->throughput;
+				}
+				else
+					break;
+
 				G->clearOcc();
 				ordic = throughput(G,eqTE,ornum,STARTUP[start]);
 
+				if( ordic - 1e-5 >=SMALL ){
+					sucCaseBW++;
+					bw += ordic;
+					bwee += G->energy;
+				}
+				else
+					break;
+					
 				G->clearOcc();
 				if(!G->GAinit(eqTE)){
 					cout << "*****GA init failed***** "<<endl;
 					break;
 				}
-
-				if( (eedic + 1e-5 >= INF)  || ( ordic - 1e-5 <=SMALL) )
-					break;
 
 				//// nash	
 				FILE *nash = fopen("outputFile//nash.csv", "a");
@@ -130,9 +147,15 @@ int main(){
 				}
 				fclose(nash);
 
+				if(nacase){
+					nashee += (loopnashee/nacase);
+					nashbw += (loopnashbw/nacase);
+					sucCaseNash++;
+				}
+
 				FILE *cur = fopen("outputFile//eebw.csv", "a");
-				fprintf(cur,"%f\n",STARTUP[start]);
-				fprintf(cur,"\n\n,EE,,%f,%f\n",eedic,G->throughput);
+				fprintf(cur,"\n\n%f,%d\n",STARTUP[start],casenum);
+				fprintf(cur,",EE,,%f,%f\n",eedic,G->throughput);
 				fprintf(cur,",OR,,%f,%f\n",G->energy,ordic);
 				fprintf(cur,",Nash,,%f,%f\n\n",loopnashee/nacase,loopnashbw/nacase);
 				fclose(cur);
@@ -156,18 +179,8 @@ int main(){
 						fclose(cur);
 
 						successCase[con] += 1;
-
-						ee[con] += eedic;
-						eebw[con] += G->throughput;
-
-						bwee[con] += G->energy;
-						bw[con] += ordic;						
-
 						see[con] += popubit.hero.energy;
 						sbw[con] += popubit.hero.throughput;
-
-						nashee[con] += (loopnashee/nacase);
-						nashbw[con] += (loopnashbw/nacase);
 						
 					}
 
@@ -179,15 +192,16 @@ int main(){
 			} // end of CASENum for
 
 			FILE *res = fopen("outputFile//result.csv", "a");		
-			fprintf(res, "%f\n",STARTUP[start]);
+			fprintf(res, "\n\nSTARTUP,%f\n",STARTUP[start]);
 			fprintf(res,"%d case average\n",CASEnum);
-			fprintf(res,"successCase,CONSIDER,Energy Efficiency,,,,throughput,,,,Stackelberg,,,,Nash\n");
+			fprintf(res,",,CONSIDER,successCase,Energy Efficiency,throughput\n");
 			for(unsigned int con = 0;con < CONSIDER.size();con++){
-				fprintf(res, "EE,%f,%f,%f,,OR,%f,%f,,S,%f,%f,,nash,%f,%f\n",CONSIDER[con],ee[con]/successCase[con],eebw[con]/successCase[con]
-				,bw[con]/successCase[con],bwee[con]/successCase[con]
-				,see[con]/successCase[con],sbw[con]/successCase[con]
-				,nashee[con]/successCase[con],nashbw[con]/successCase[con]); 
+				fprintf(res, ",S,%f,%d,%f,%f\n",CONSIDER[con],successCase[con],see[con]/successCase[con],sbw[con]/successCase[con]); 
 			}
+			fprintf(res,",,,successCase,Energy Efficiency,throughput\n");
+			fprintf(res, "\n\n,EE,,%d,%f,%f\n",sucCaseEE,ee/sucCaseEE,eebw/sucCaseEE);
+			fprintf(res, ",OR,,%d,%f,%f\n",sucCaseBW,bw/sucCaseBW,bwee/sucCaseBW);
+			fprintf(res, ",Nash,,%d,%f,%f\n",sucCaseNash,nashee/sucCaseNash,nashbw/sucCaseNash);
 			fclose(res);
 
 		} // end of STARTUP for

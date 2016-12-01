@@ -21,7 +21,7 @@ using namespace std;
 
 
 #define MAXDEMAND 15
-#define BGNUM 5
+#define BGNUM 15
 #define INF 1e+8
 #define SMALL 1e-4
 #define MAXWEIGHT 10

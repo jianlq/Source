@@ -292,16 +292,16 @@ double evoluDivbit::GAability(){
 	}
 
 	// 计算EE的目标值
-	G->clearOcc(); 
 	double ee,bw2;
-	heuristicEE(G,req,ornum,ee,bw2,OPEN);
-	cout << ee<< "  "<<bw<<"  "<< bw2<<endl; // bw2 is big
+	G->clearOcc(); 
+	heuristicEE(G,req,ornum,ee,bw2,OPEN);	
+	cout << ee << "  "<<bw<<"  "<< bw2<<endl; // bw2 is big
 	
 	double ab = MIN;
 	if (  ( bw - 1e-5 >= SMALL) && ( ee+1e-5 <= INF)  ){
 		this->energy = ee;
-		this->throughput = bw;	
-		ab = this->energybase/ee + bw*this->consider / this->throughputbase;  
+		this->throughput = bw2;	
+		ab = this->energybase/ee + bw2*this->consider / this->throughputbase;  
 	}
 	return ab;
 }

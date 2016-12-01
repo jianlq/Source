@@ -39,17 +39,21 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 		model.add( constraint <= G->Link[i]->capacity );  
 	}
 
+	IloIntVarArray one(env,G->m,0,1);
+
+
 	//优化目标 节能 OPEN+X^2
 	IloExpr cost(env);
 	for(int i = 0; i < G->m; i++){
 		IloExpr load(env);
-		IloIntVarArray tmp(env,num,0,1);
+		//IloIntVarArray tmp(env,num,0,1);
 		for(int d = 0; d < num; d++){
 			load += req[d].flow*x[d][i];
-			tmp[d] = x[d][i];
+			//tmp[d] = x[d][i];
 		}
+		model.add(one[i]>=load/G->Link[i]->capacity);
+		cost += ( IloPower(load,2) + one[i]*OPEN );
 		//cost += ( IloPower(load,2) + IloMax(tmp)*OPEN );
-		cost += ( load*load + IloMax(tmp)*OPEN );
 	}
 	model.add(IloMinimize(env,cost));
 
@@ -57,6 +61,7 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	double obj = INF;
 	if(EEsolver.solve()){
 		obj = EEsolver.getObjValue(); //energy
+
 		//thoughtput
 		double output = 0;
 		for(int i = 0;i < G->m; i++){  
@@ -116,7 +121,6 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 		for(int i = 0; i < G->m; i++)
 			model.add(Res[d] <= ((1-x[d][i])*INF + (G->Link[i]->capacity - Load[i])));
 		goal += Res[d]*req[d].flow; //why req[d].flow
-		//goal+=Y[d]*reqL[d]->flow/(int)g->cost_best[reqL[d]->id];
 	}
 
 	model.add(IloMaximize(env,goal));
@@ -216,13 +220,10 @@ double bwcplex(CGraph *g,vector<demand> req){
 
 		ORsolver.setOut(env.getNullStream());
 		double obj = SMALL;
-		ORsolver.solve();
-		if(ORsolver.getStatus() == IloAlgorithm::Infeasible)
-			env.out() << "throughput unfeasible" << endl;
-		else{
-			obj = ORsolver.getObjValue();
 
-			// bw
+		if(ORsolver.solve()){
+			obj = ORsolver.getObjValue();
+			// load
 			for(int i = 0; i < g->m; i++){  
 				double load = 0;
 				for(int d = 0; d < num; d++){
@@ -231,7 +232,10 @@ double bwcplex(CGraph *g,vector<demand> req){
 				g->Link[i]->use = load;
 			}
 		}
-		for(size_t i = 0; i < req.size(); i++)
+		else{
+			env.out() << "bwcplex unfeasible" << endl;			
+		}
+		for(unsigned int i = 0; i < req.size(); i++)
 			x[i].end();
 		x.end();
 		env.end();
