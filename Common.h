@@ -21,7 +21,7 @@ using namespace std;
 
 
 #define MAXDEMAND 15
-#define BGNUM 15
+#define BGNUM 8
 #define INF 1e+8
 #define SMALL 1e-4
 #define MAXWEIGHT 10
@@ -29,7 +29,7 @@ using namespace std;
 #define CONSTANT 0
 #define K 16
 #define MINCAPACITY 60
-#define MAXCAPACITY 80
+#define MAXCAPACITY 90
 
 
 #endif

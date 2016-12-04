@@ -242,12 +242,12 @@ void genGraph(int n, int m, char route[]){
 	fprintf(out,"%d %d\n",n,m);
 	for(int i = 1; i < min(n, m+1); i++){
 		int t = rand()%i, w = rand()%MAXWEIGHT+1;
-		int c = rand()%(MAXCAPACITY-MINCAPACITY)+2;
+		int c = rand()%(MAXCAPACITY)+2;
 		fprintf(out, "%d %d %d %d\n", i, t, w,c);
 	}
 	for(int i = 0; i < m-n+1; i++){
 		int s = rand()%n, t = rand()%n, w = rand()%MAXWEIGHT+1;
-		int c = rand()%(MAXCAPACITY-MINCAPACITY)+2;
+		int c = rand()%(MAXCAPACITY)+2;
 		while(t == s)
 			t = rand()%n;
 		fprintf(out, "%d %d %d %d\n", t, s, w, c);

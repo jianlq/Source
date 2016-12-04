@@ -5,7 +5,7 @@
 // 能耗和吞吐率
 int main(){
 	srand((unsigned)time(NULL));
-	int Time = 3;
+	int Time = 2;
 	int CASEnum= 20;	
 	vector<double> STARTUP;
 	STARTUP.push_back(0);
@@ -33,17 +33,16 @@ int main(){
 			vector<double> see(conN,0) ;
 			vector<double> sbw(conN,0);
 
-			double ee ;
-			double eebw ;
+			double ee = 0;
+			double eebw = 0;
 
-			double bwee;
-			double bw;
+			double bwee = 0;
+			double bw = 0;
 
-			double nashee ;
-			double nashbw;
+			double nashee = 0;
+			double nashbw = 0;
 
 			vector<int> successCase (conN, 0) ;
-			vector<int> flag(conN,1);
 
 			int sucCaseEE = 0,sucCaseBW = 0,sucCaseNash = 0;
 
@@ -112,12 +111,14 @@ int main(){
 					break;
 				}
 
-				//// nash	
+				// 让两个dic打？nash 结果？？？ 2016-12-01 12:00
+
+				//// nash		
 				FILE *nash = fopen("outputFile//nash.csv", "a");
 				int nacase = 0;
 				double loopnashee=0,loopnashbw=0;
 				fprintf(nash,"\n\n nash \n");
-				fprintf(nash,"STARTUP,%f \n",STARTUP[start]);
+				fprintf(nash,"STARTUP,%d \n",STARTUP[start]);
 				for(int i =0;i<LOOP;i++){
 					G->clearOcc();
 					GOR->clearOcc();
@@ -142,8 +143,8 @@ int main(){
 					nacase++;
 					loopnashee += curee;
 					loopnashbw += curbw;
-					fprintf(nash,"%f,%f\n",curee,curbw);
-					printf("%f,%f\n",curee,curbw);
+					fprintf(nash,"%lf,%lf\n",curee,curbw);
+					cout<<curee<<"\t"<<curbw<<endl;
 				}
 				fclose(nash);
 
@@ -154,10 +155,10 @@ int main(){
 				}
 
 				FILE *cur = fopen("outputFile//eebw.csv", "a");
-				fprintf(cur,"\n\n%f,%d\n",STARTUP[start],casenum);
-				fprintf(cur,",EE,,%f,%f\n",eedic,G->throughput);
-				fprintf(cur,",OR,,%f,%f\n",G->energy,ordic);
-				fprintf(cur,",Nash,,%f,%f\n\n",loopnashee/nacase,loopnashbw/nacase);
+				fprintf(cur,"\n\n\n%lf,%d\n",STARTUP[start],casenum);
+				fprintf(cur,",EE,,%lf,%lf\n",eedic,G->throughput);
+				fprintf(cur,",OR,,%lf,%lf\n",G->energy,ordic);
+				fprintf(cur,",Nash,,%lf,%lf\n\n",loopnashee/nacase,loopnashbw/nacase);
 				fclose(cur);
 
 				for(unsigned int con = 0;con < CONSIDER.size();con++){
@@ -169,20 +170,17 @@ int main(){
 					cout<<"S\t"<<popubit.hero.energy<<"\t"<<popubit.hero.throughput <<endl;
 
 					if( (popubit.hero.energy +1e-5) >= INF ||  (popubit.hero.throughput  - 1e-5) < SMALL ){
-						flag[con] = 0;
 						break;
 					}
 
 					cur = fopen("outputFile//eebw.csv", "a");
-					if(flag[con]){	
-						fprintf(cur,",S,%f,%f,%f\n",CONSIDER[con],popubit.hero.energy,popubit.hero.throughput);
-						fclose(cur);
-
-						successCase[con] += 1;
-						see[con] += popubit.hero.energy;
-						sbw[con] += popubit.hero.throughput;
 						
-					}
+					fprintf(cur,",S,%lf,%lf,%lf\n",CONSIDER[con],popubit.hero.energy,popubit.hero.throughput);
+					fclose(cur);
+
+					successCase[con] += 1;
+					see[con] += popubit.hero.energy;
+					sbw[con] += popubit.hero.throughput;
 
 				} // end of CONSIDER for
 
@@ -192,16 +190,16 @@ int main(){
 			} // end of CASENum for
 
 			FILE *res = fopen("outputFile//result.csv", "a");		
-			fprintf(res, "\n\nSTARTUP,%f\n",STARTUP[start]);
+			fprintf(res, "\n\nSTARTUP,%lf\n",STARTUP[start]);
 			fprintf(res,"%d case average\n",CASEnum);
 			fprintf(res,",,CONSIDER,successCase,Energy Efficiency,throughput\n");
 			for(unsigned int con = 0;con < CONSIDER.size();con++){
-				fprintf(res, ",S,%f,%d,%f,%f\n",CONSIDER[con],successCase[con],see[con]/successCase[con],sbw[con]/successCase[con]); 
+				fprintf(res, ",S,%lf,%d,%lf,%lf\n",CONSIDER[con],successCase[con],see[con]/successCase[con],sbw[con]/successCase[con]); 
 			}
 			fprintf(res,",,,successCase,Energy Efficiency,throughput\n");
-			fprintf(res, "\n\n,EE,,%d,%f,%f\n",sucCaseEE,ee/sucCaseEE,eebw/sucCaseEE);
-			fprintf(res, ",OR,,%d,%f,%f\n",sucCaseBW,bw/sucCaseBW,bwee/sucCaseBW);
-			fprintf(res, ",Nash,,%d,%f,%f\n",sucCaseNash,nashee/sucCaseNash,nashbw/sucCaseNash);
+			fprintf(res, "\n\n,EE,,%d,%lf,%lf\n",sucCaseEE,ee/sucCaseEE,eebw/sucCaseEE);
+			fprintf(res, ",OR,,%d,%lf,%lf\n",sucCaseBW,bw/sucCaseBW,bwee/sucCaseBW);
+			fprintf(res, ",Nash,,%d,%lf,%lf\n",sucCaseNash,nashee/sucCaseNash,nashbw/sucCaseNash);
 			fclose(res);
 
 		} // end of STARTUP for

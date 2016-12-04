@@ -161,7 +161,7 @@ public:
 	// n 种群大小  m:req数目 初始化种群
 	evoluPopubit(int n, int m, CGraph *g, CGraph *gor,vector<demand> *d,vector<demand> *dor,double energybest,double thoughtputbest,double con,double OPEN){
 		popu.clear();
-		pm = 0.25;
+		pm = 0.30;
 		G = g;
 		GOR = gor;
 		dem = d;
@@ -300,8 +300,8 @@ double evoluDivbit::GAability(){
 	double ab = MIN;
 	if (  ( bw - 1e-5 >= SMALL) && ( ee+1e-5 <= INF)  ){
 		this->energy = ee;
-		this->throughput = bw2;	
-		ab = this->energybase/ee + bw2*this->consider / this->throughputbase;  
+		this->throughput = bw;	
+		ab = this->energybase/ee + bw*this->consider / this->throughputbase;  
 	}
 	return ab;
 }

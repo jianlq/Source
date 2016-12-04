@@ -9,13 +9,13 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	IloModel model(env);
 	IloCplex EEsolver(model);
 
-	int num = req.size();	
-	IloArray<IloIntVarArray> x(env, num); 
-	for(int d = 0; d < num; d++)
+	int totalnum = req.size();	
+	IloArray<IloIntVarArray> x(env, totalnum); 
+	for(int d = 0; d < totalnum; d++)
 		x[d] = IloIntVarArray(env, G->m, 0, 1); 	
 
 	// 对每个点进行流量守恒约束  
-	for(int d = 0; d < num; d++){
+	for(int d = 0; d < totalnum; d++){
 		for(int i = 0; i < G->n; i++){    // n为顶点数
 			IloExpr constraint(env);
 			for(unsigned int k = 0; k < G->adjL[i].size(); k++) // 出度边
@@ -34,7 +34,7 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 
 	for(int i = 0; i < G->m; i++){
 		IloExpr constraint(env);
-		for(int d = 0; d <  num; d++)
+		for(int d = 0; d <  totalnum ; d++)
 			constraint += req[d].flow*x[d][i];
 		model.add( constraint <= G->Link[i]->capacity );  
 	}
@@ -46,8 +46,8 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	IloExpr cost(env);
 	for(int i = 0; i < G->m; i++){
 		IloExpr load(env);
-		//IloIntVarArray tmp(env,num,0,1);
-		for(int d = 0; d < num; d++){
+		//IloIntVarArray tmp(env,totalnum,0,1);
+		for(int d = 0; d < totalnum; d++){
 			load += req[d].flow*x[d][i];
 			//tmp[d] = x[d][i];
 		}
@@ -61,12 +61,11 @@ double EEdictor(CGraph *G,vector<demand> & req,int ornum,double OPEN){
 	double obj = INF;
 	if(EEsolver.solve()){
 		obj = EEsolver.getObjValue(); //energy
-
-		//thoughtput
+		//bw
 		double output = 0;
 		for(int i = 0;i < G->m; i++){  
 			double loadc = 0;
-			for(int d = 0;d < num; d++)
+			for(int d = 0;d < totalnum ; d++)
 				loadc += EEsolver.getValue(x[d][i])*req[d].flow;
 			G->Link[i]->bw = G->Link[i]->capacity -loadc; //residual bw
 		}
@@ -157,7 +156,7 @@ double throughput(CGraph *G,vector<demand> req,int ornum,double OPEN){
 			env.out() << "throughput unfeasible" << endl;
 		else{
 			obj = ORsolver.getObjValue();
-			// 计算 energy
+			//  energy
 			double energy = 0;
 			for(int i = 0; i < G->m; i++){  
 				double load = 0;
